@@ -1,6 +1,9 @@
-import rawSessions from '@/assets/sessionize/sessions.json'
-import rawSpeakers from '@/assets/sessionize/speakers.json'
-import { getTalkTimeBlocks } from '@/components/preact/ScheduleSection'
+//import rawSessions from '@/assets/sessionize/sessions.json'
+//import rawSpeakers from '@/assets/sessionize/speakers.json'
+import { fetchSessions, fetchSpeakers } from "@/assets/sessionize/fetch"
+
+const rawSessions = await fetchSessions()
+const rawSpeakers = await fetchSpeakers()
 
 export type Speaker = {
     id: string
@@ -51,7 +54,9 @@ const rawSessionsAssigned = rawSessions.filter(session => {
 
 const rawSpeakersAssigned = rawSpeakers.filter(speaker => {
     const speakerId = speaker['Speaker Id']
+
     const isAccepted = rawSessionsAssigned.some(session => session['Speaker Ids'].split(', ').includes(speakerId))
+    
     if (!isAccepted) {
         console.warn(`Speaker "${speaker['FirstName']} ${speaker['LastName']}" has been hidden for now`)
     }
@@ -97,6 +102,7 @@ const WORKSHOPS: Record<string, { color: string }> = {
 
 export const TALKS: Talk[] = [
     ...rawSessionsAssigned.map<Talk>(session => {
+        
         const id = slugify(session['Title'])
         const title = session['Title']
         const description = excelCleanup(session['Description'])
