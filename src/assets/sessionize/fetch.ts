@@ -1,28 +1,22 @@
-import type { RawSession } from "@/assets/sessionize/sessions.json";
-import type { RawSpeaker } from "@/assets/sessionize/speakers.json";
+import type { ApiSession, ApiSessionGroup, ApiSpeaker } from "@/env"
 
-const baseUrl: string = "https://sessionize.com/api/v2/3rrux9hb/view";
+const BASE_URL = "https://sessionize.com/api/v2/3rrux9hb/view"
 
-export const fetchSessions = async (): Promise<RawSession[]> => {
-    const data: RawSession[] = await fetch(`${baseUrl}/Sessions`)
-        .then(res => {
-            if(!res.ok)
-                console.log("error fetching sessionize api");
-            return res.json()
-        })
-        .catch(err => console.log(err));
+export async function fetchSessions(): Promise<ApiSession[]> {
+    const response = await fetch(`${BASE_URL}/Sessions`)
+    if (!response.ok) {
+        throw new Error(`Failed to fetch sessions: ${response.status} ${response.statusText}`)
+    }
 
-    return data;
+    const groups: ApiSessionGroup[] = await response.json()
+    return groups.flatMap(group => group.sessions)
 }
 
-export const fetchSpeakers = async (): Promise<RawSpeaker[]> => {
-    const data: RawSpeaker[] = await fetch(`${baseUrl}/Speakers`)
-        .then(res => {
-            if(!res.ok)
-                console.log("error fetching sessionize api");
-            return res.json()
-        })
-        .catch(err => console.log(err));
+export async function fetchSpeakers(): Promise<ApiSpeaker[]> {
+    const response = await fetch(`${BASE_URL}/Speakers`)
+    if (!response.ok) {
+        throw new Error(`Failed to fetch speakers: ${response.status} ${response.statusText}`)
+    }
 
-    return data;
+    return response.json()
 }

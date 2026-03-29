@@ -1,9 +1,14 @@
 //import rawSessions from '@/assets/sessionize/sessions.json'
 //import rawSpeakers from '@/assets/sessionize/speakers.json'
 import { fetchSessions, fetchSpeakers } from "@/assets/sessionize/fetch"
+import { boolean } from "astro:schema"
 
 const rawSessions = await fetchSessions()
 const rawSpeakers = await fetchSpeakers()
+
+const categoryGDEQuestionId = 117314
+const categoryLevelId = 117312
+const categoryLanguageId = 117313
 
 export type Speaker = {
     id: string
@@ -45,20 +50,20 @@ const excelCleanup = (str: string) => str.replaceAll('_x000D_', '\n')
 
 // Remove talks with no room assigned
 const rawSessionsAssigned = rawSessions.filter(session => {
-    const isAccepted = session['Room'] !== null
+    const isAccepted = session.room !== null
     if (!isAccepted) {
-        console.warn(`Talk "${session['Title']}" has been hidden for now`)
+        console.warn(`Talk "${session.title}" has been hidden for now`)
     }
     return isAccepted
 })
 
 const rawSpeakersAssigned = rawSpeakers.filter(speaker => {
-    const speakerId = speaker['Speaker Id']
+    const speakerId = speaker.id
 
-    const isAccepted = rawSessionsAssigned.some(session => session['Speaker Ids'].split(', ').includes(speakerId))
+    const isAccepted = rawSessionsAssigned.some(session => session.speakers.map(speaker => speaker.id).includes(speakerId))
     
     if (!isAccepted) {
-        console.warn(`Speaker "${speaker['FirstName']} ${speaker['LastName']}" has been hidden for now`)
+        console.warn(`Speaker "${speaker.firstName} ${speaker.lastName}" has been hidden for now`)
     }
     return isAccepted
 })
@@ -66,25 +71,28 @@ const rawSpeakersAssigned = rawSpeakers.filter(speaker => {
 const speakersBySessionizeUUID: Record<string, Speaker> = {}
 
 for (const speaker of rawSpeakersAssigned) {
-    const id = speaker['Speaker Id']
+    const id = speaker.id
 
-    // console.log(`Processing speaker "${speaker['FirstName']} ${speaker['LastName']}"...`)
+    // console.log(`Processing speaker "${speaker.firstName} ${speaker.lastName}"...`)
 
     speakersBySessionizeUUID[id] = {
-        id: slugify(`${speaker['FirstName']} ${speaker['LastName']}`),
-        firstName: speaker['FirstName'],
-        lastName: speaker['LastName'],
-        tagLine: speaker['TagLine'],
-        bio: excelCleanup(speaker['Bio'] ?? ''),
-        profilePicture: speaker['Profile Picture'],
+        id: slugify(`${speaker.firstName} ${speaker.lastName}`),
+        firstName: speaker.firstName,
+        lastName: speaker.lastName,
+        tagLine: speaker.tagLine ?? "",
+        bio: excelCleanup(speaker.bio ?? ''),
+        profilePicture: speaker.profilePicture ?? "",
         isGDE: false,
     }
 }
 
 for (const session of rawSessionsAssigned) {
-    // console.log(`Processing talk "${session['Title']}"...`)
-    if ((session['Are you a Google employee or GDE?'] ?? '').includes('Yes')) {
-        const speakerIds = session['Speaker Ids'].split(', ')
+    // console.log(`Processing talk "${session.title}"...`)
+
+    const isEmployeeOrGDE = session.categories.find(c => c.id == categoryGDEQuestionId)?.categoryItems.some(it => it.name.includes("YES"))
+
+    if (session.categories.length > 0 && isEmployeeOrGDE) {
+        const speakerIds = session.speakers.map(speaker => speaker.id)
         for (const speakerId of speakerIds) {
             if (speakersBySessionizeUUID[speakerId]) {
                 speakersBySessionizeUUID[speakerId].isGDE = true
@@ -103,19 +111,19 @@ const WORKSHOPS: Record<string, { color: string }> = {
 export const TALKS: Talk[] = [
     ...rawSessionsAssigned.map<Talk>(session => {
         
-        const id = slugify(session['Title'])
-        const title = session['Title']
-        const description = excelCleanup(session['Description'])
+        const id = slugify(session.title)
+        const title = session.title
+        const description = excelCleanup(session.description ?? "")
 
-        const category = session['Category']
-        const level = session['Level']
-        const language = session['Language']
+        const categories = session.categories
+        const level = categories.find(c => c.id == categoryLevelId)?.categoryItems[0].name ?? ""
+        const language = categories.find(c => c.id == categoryLanguageId)?.categoryItems[0].name ?? ""
 
-        const room = session['Room']
-        const startTime = session['Scheduled At']
-        const duration = session['Scheduled Duration'] ?? 0
+        const room = session.room ?? ""
+        const startTime = session.startsAt ?? ""
+        //const duration = new Date(session.endsAt ?? "") - new Date(startTime ?? "")
 
-        const speakers = session['Speaker Ids'].split(', ').map(speakerId => speakersBySessionizeUUID[speakerId])
+        const speakers = session.speakers.map(speaker => speaker.id).map(speakerId => speakersBySessionizeUUID[speakerId])
 
         return {
             id,
@@ -123,12 +131,14 @@ export const TALKS: Talk[] = [
             description,
 
             room,
-            category,
+//          category,
+            category:"",
             level,
             language,
 
             startTime,
-            duration,
+//          duration,
+            duration:0,
 
             speakers,
         }
