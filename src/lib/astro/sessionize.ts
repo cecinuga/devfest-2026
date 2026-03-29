@@ -1,7 +1,6 @@
 //import rawSessions from '@/assets/sessionize/sessions.json'
 //import rawSpeakers from '@/assets/sessionize/speakers.json'
-import { fetchSessions, fetchSpeakers } from "@/assets/sessionize/fetch"
-import { boolean } from "astro:schema"
+import { fetchSessions, fetchSpeakers } from "@/assets/sessionize/sessionize-fetch"
 
 const rawSessions = await fetchSessions()
 const rawSpeakers = await fetchSpeakers()

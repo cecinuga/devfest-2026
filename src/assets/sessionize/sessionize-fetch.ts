@@ -1,4 +1,4 @@
-import type { ApiSession, ApiSessionGroup, ApiSpeaker } from "@/env"
+import type { ApiSession, ApiSessionGroup, ApiSpeaker } from "./sessionize-api-types"
 
 const BASE_URL = "https://sessionize.com/api/v2/3rrux9hb/view"
 
